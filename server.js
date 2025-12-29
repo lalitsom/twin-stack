@@ -6,54 +6,6 @@ const url = require('url');
 const server = http.createServer((req, res) => {
     const parsedUrl = url.parse(req.url, true);
     const pathname = parsedUrl.pathname;
-
-    if (pathname === '/api/stacks') {
-        const gcpDir = path.join(__dirname, 'assets', 'data', 'gcp');
-        fs.readdir(gcpDir, (err, files) => {
-            if (err) {
-                res.writeHead(500, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: 'Internal Server Error' }));
-                return;
-            }
-
-            const stacks = {};
-            files.forEach(file => {
-                if (file.endsWith('.js')) {
-                    const parts = file.replace('.js', '').split('_');
-                    const stackName = parts[0];
-                    const date = parts[1];
-                    if (!stacks[stackName]) {
-                        stacks[stackName] = [];
-                    }
-                    stacks[stackName].push(date);
-                }
-            });
-
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify(stacks));
-        });
-    } else if (pathname === '/api/data') {
-        const { stack, date } = parsedUrl.query;
-        if (!stack || !date) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Missing stack or date parameter' }));
-            return;
-        }
-
-        const fileName = `${stack}_${date}.js`;
-        const filePath = path.join(__dirname, 'assets', 'data', 'gcp', fileName);
-
-        fs.readFile(filePath, 'utf8', (err, data) => {
-            if (err) {
-                res.writeHead(404, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: 'Data not found' }));
-                return;
-            }
-            res.writeHead(200, { 'Content-Type': 'application/javascript' });
-            res.end(data);
-        });
-
-    } else {
         const requestedUrl = req.url === '/' ? '/index.html' : req.url;
         const ext = path.extname(requestedUrl).toLowerCase();
 
@@ -115,7 +67,6 @@ const server = http.createServer((req, res) => {
                 }
             });
         }
-    }
 });
 
 const PORT = process.env.PORT || 3000;
