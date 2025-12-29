@@ -1,6 +1,6 @@
 // State
 const inventory = {
-    'server': { type: 'hardware', name: 'Server Node', icon: 'fa-server', count: 5, ports: [], slots: ['pcie2'] },
+    'server': { type: 'hardware', name: 'Server Node', icon: 'fa-server', count: 5, ports: [], slots: ['pcie'] },
     'switch': { type: 'hardware', name: '24-Port Switch', icon: 'fa-network-wired', count: 3, ports: Array(8).fill('lan') }, // Simplified to 8 for UI
     'nic': { type: 'hardware', name: 'PCIe NIC', icon: 'fa-microchip', count: 10, ports: ['lan'], connector: 'pcie' },
     'nic2': { type: 'hardware', name: 'PCIe NIC 2', icon: 'fa-microchip', count: 10, ports: ['lan'], connector: 'pcie' },
@@ -93,6 +93,16 @@ function activateCableTool(key) {
     renderInventory();
 }
 
+function getTypeColor(type) {
+    const colors = ['red', 'blue', 'green', 'purple', 'orange', 'teal', 'pink', 'indigo'];
+    let hash = 0;
+    for (let i = 0; i < type.length; i++) {
+        hash = type.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+}
+
 // --- Component Factory ---
 function createComponent(type, x, y) {
     const data = inventory[type];
@@ -128,31 +138,32 @@ function createComponent(type, x, y) {
     // Render Ports/Slots
     const portsContainer = el.querySelector('.ports-container');
     
-    // 1. Standard Ports (Switch LAN, NIC LAN)
+    // 1. Standard Ports (Female)
     if (data.ports) {
         data.ports.forEach((pType, idx) => {
             const portId = `${id}_p_${idx}`;
-            const portEl = createPortElement(portId, pType);
+            const portEl = createPortElement(portId, pType, 'port');
             portsContainer.appendChild(portEl);
-            component.ports[portId] = { id: portId, type: pType, connectedTo: null, parentId: id };
+            component.ports[portId] = { id: portId, type: pType, role: 'port', parentId: id };
         });
     }
 
-    // 2. PCIe Connector (for NIC) - acts as a "male" port? Or just a special port.
-    if (data.connector === 'pcie') {
-        const portId = `${id}_pcie_conn`;
-        const portEl = createPortElement(portId, 'pcie_m', true); // Male connector
+    // 2. Connector (Male - e.g. PCIe Card Edge)
+    if (data.connector) {
+        const pType = data.connector;
+        const portId = `${id}_conn_${pType}`;
+        const portEl = createPortElement(portId, pType, 'connector');
         portsContainer.appendChild(portEl);
-        component.ports[portId] = { id: portId, type: 'pcie', connectedTo: null, parentId: id };
+        component.ports[portId] = { id: portId, type: pType, role: 'connector', parentId: id };
     }
 
-    // 3. PCIe Slots (for Server)
+    // 3. Slots (Female - Internal)
     if (data.slots) {
         data.slots.forEach((sType, idx) => {
             const slotId = `${id}_slot_${idx}`;
-            const slotEl = createPortElement(slotId, sType, false, true); // Slot
-            portsContainer.appendChild(slotEl);
-            component.ports[slotId] = { id: slotId, type: 'pcie', connectedTo: null, parentId: id };
+            const portEl = createPortElement(slotId, sType, 'slot');
+            portsContainer.appendChild(portEl);
+            component.ports[slotId] = { id: slotId, type: sType, role: 'slot', parentId: id };
         });
     }
 
@@ -164,32 +175,38 @@ function createComponent(type, x, y) {
     components.push(component);
 }
 
-function createPortElement(id, type, isConnector = false, isSlot = false) {
+function createPortElement(id, type, role) {
     const div = document.createElement('div');
     div.id = id;
-    div.className = `hw-port w-6 h-6 rounded flex items-center justify-center border text-[10px] relative z-20`;
-    
-    if (type === 'lan') {
-        div.classList.add('bg-gray-100', 'border-gray-400');
-        div.title = "LAN Port (RJ45)";
-        div.innerHTML = '<i class="fas fa-network-wired text-gray-500"></i>';
-    } else if (type === 'pcie') {
-        div.classList.add('bg-gray-200', 'border-gray-400');
-        div.title = "PCIe Slot";
-        div.style.width = '40px'; 
-        // Visual: A dark slot
-        div.innerHTML = '<div class="w-3/4 h-1 bg-gray-800 rounded mx-auto mt-2"></div>';
-    } else if (type === 'pcie_m') {
-        div.classList.add('bg-yellow-100', 'border-yellow-400', 'cursor-pointer');
-        div.title = "PCIe Connector (Click to Install)";
-        div.style.width = '30px'; 
-        // Visual: Gold pins
-        div.innerHTML = '<div class="w-full h-full flex items-end justify-center pb-1"><div class="w-3/4 h-2 bg-yellow-500 rounded-sm border border-yellow-600"></div></div>';
+    div.className = `hw-port flex items-center justify-center border text-[9px] font-bold relative z-20 transition-all`;
+    div.style.minWidth = '24px';
+    div.style.height = '24px';
+    div.style.padding = '0 4px';
+    div.style.borderRadius = '4px';
+
+    const color = getTypeColor(type);
+
+    // Generic Styling based on Role & Dynamic Color
+    if (role === 'connector') {
+        // Male / Output (Light bg, Strong border)
+        div.classList.add(`bg-${color}-100`, `border-${color}-500`, `text-${color}-900`, 'cursor-pointer');
+        div.innerHTML = `${type.toUpperCase()}(c)`;
+        div.title = `Click to Install (${type})`;
+    } else if (role === 'slot') {
+        // Female / Internal (Dark bg, Light text)
+        div.classList.add(`bg-${color}-700`, `border-${color}-900`, 'text-white');
+        div.innerHTML = `${type.toUpperCase()}(s)`;
+        div.style.minWidth = '40px';
+    } else {
+        // Standard Port (Very light bg)
+        div.classList.add(`bg-${color}-50`, `border-${color}-300`, `text-${color}-700`);
+        div.innerHTML = type.toUpperCase();
+        if (type === 'lan') div.innerHTML = '<i class="fas fa-network-wired"></i>';
     }
 
     div.addEventListener('click', (e) => {
         e.stopPropagation();
-        handlePortClick(id, type);
+        handlePortClick(id);
     });
 
     return div;
@@ -266,40 +283,43 @@ function setupDraggable(el, component) {
 }
 
 // --- Cabling Logic ---
-function handlePortClick(portId, portType) {
+function handlePortClick(portId) {
+    // Helper to find component/port data
+    const comp = components.find(c => c.ports[portId]);
+    const portData = comp.ports[portId]; // { id, type, role, ... }
+
     // If we have an active cable tool
     if (activeCableType) {
         if (!sourcePort) {
             // Select Source
-            sourcePort = { id: portId, type: portType };
+            sourcePort = portData;
             document.getElementById(portId).classList.add('selected-source');
-            
-            // Start visual line
             startTempLine(portId);
         } else {
-            // Select Target
-            if (portId === sourcePort.id) return; // Cannot connect to self
-            completeConnection(portId, portType);
+            if (portId === sourcePort.id) return; 
+            completeConnection(portData);
         }
         return;
     } 
 
-    // Special Case: Direct Installation (Click Gold Connector -> Click Slot)
-    if (portType === 'pcie_m') {
+    // Special Case: Direct Installation (Click Connector -> Click Slot)
+    if (portData.role === 'connector') {
         if (!sourcePort) {
-            sourcePort = { id: portId, type: portType };
+            sourcePort = portData;
             document.getElementById(portId).classList.add('selected-source');
             startTempLine(portId);
-            showNotification("Select a PCIe Slot to install this card.");
+            showNotification(`Select a matching ${portData.type.toUpperCase()} Slot.`);
             return;
         }
-    } else if (sourcePort && sourcePort.type === 'pcie_m') {
-        // Finishing an installation
-        completeConnection(portId, portType);
+    } 
+    
+    if (sourcePort && sourcePort.role === 'connector') {
+        // Finishing an installation (Source was a connector)
+        completeConnection(portData);
         return;
     }
     
-    showNotification("Select a cable from inventory to connect components.");
+    showNotification("Select a cable or click a Connector to install.");
 }
 
 function startTempLine(portId) {
@@ -336,30 +356,32 @@ function startTempLine(portId) {
     window.addEventListener('mousemove', onMove);
 }
 
-function completeConnection(targetPortId, targetType) {
+function completeConnection(targetPortData) {
     const sourceEl = document.getElementById(sourcePort.id);
-    const targetEl = document.getElementById(targetPortId);
+    const targetEl = document.getElementById(targetPortData.id);
 
-    // Case 1: Direct Installation (No Cable Item)
+    // Case 1: Direct Installation (Connector -> Slot)
     if (!activeCableType) {
-        if (sourcePort.type === 'pcie_m' && targetType === 'pcie') {
+        // Check Role Compatibility: Connector -> Slot
+        // Check Type Compatibility: e.g. 'pcie' === 'pcie'
+        if (sourcePort.role === 'connector' && targetPortData.role === 'slot' && sourcePort.type === targetPortData.type) {
              const connId = `conn_${Date.now()}`;
              connections.push({
                  id: connId,
                  source: sourcePort.id,
-                 target: targetPortId,
-                 type: 'pcie',
+                 target: targetPortData.id,
+                 type: sourcePort.type, // Use the component type as connection type
                  cableRef: null
              });
              
              sourceEl.classList.add('connected');
              targetEl.classList.add('connected');
-             drawPermanentLine(connId, sourcePort.id, targetPortId, 'pcie');
-             showNotification("Card Installed!");
+             drawPermanentLine(connId, sourcePort.id, targetPortData.id, 'pcie'); // Use default purple style
+             showNotification(`${sourcePort.type.toUpperCase()} Connected!`);
              cancelConnection();
              return;
         } else {
-             showError("Invalid Installation: Connect Gold Connector to PCIe Slot.");
+             showError(`Invalid: Cannot connect ${sourcePort.type}(c) to ${targetPortData.type}(${targetPortData.role === 'slot' ? 's' : '?'})`);
              cancelConnection();
              return;
         }
@@ -376,12 +398,12 @@ function completeConnection(targetPortId, targetType) {
     }
 
     // 2. Check Port Compatibility
-    if (cableData.cableType === 'lan') {
-        if (sourcePort.type !== 'lan' || targetType !== 'lan') {
-            showError("Invalid Connection: LAN Cable requires RJ45 ports.");
-            cancelConnection();
-            return;
-        }
+    // Generic Rule: Cable Type must match Port Type AND Ports must be 'port' role (usually)
+    // For now, simple check:
+    if (sourcePort.type !== cableData.cableType || targetPortData.type !== cableData.cableType) {
+        showError(`Mismatch: Cable (${cableData.cableType}) vs Ports (${sourcePort.type}/${targetPortData.type})`);
+        cancelConnection();
+        return;
     }
 
     // 3. Create Connection
@@ -389,7 +411,7 @@ function completeConnection(targetPortId, targetType) {
     connections.push({
         id: connId,
         source: sourcePort.id,
-        target: targetPortId,
+        target: targetPortData.id,
         type: cableData.cableType,
         cableRef: activeCableType
     });
@@ -399,7 +421,7 @@ function completeConnection(targetPortId, targetType) {
     sourceEl.classList.add('connected');
     targetEl.classList.add('connected');
     
-    drawPermanentLine(connId, sourcePort.id, targetPortId, cableData.cableType);
+    drawPermanentLine(connId, sourcePort.id, targetPortData.id, cableData.cableType);
 
     showNotification("Connected successfully!");
     cancelConnection(); // Reset tool
