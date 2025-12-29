@@ -1,0 +1,14 @@
+{
+  "name": "simple-server",
+  "version": "1.0.0",
+  "description": "A simple Node.js server",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "keywords": [],
+  "devDependencies": {},
+  "dependencies": {}
+}

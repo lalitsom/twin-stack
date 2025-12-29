@@ -1,0 +1,24 @@
+body {
+    margin: 0;
+    overflow: hidden;
+}
+
+.node circle {
+    stroke: #fff;
+    stroke-width: 1.5px;
+}
+
+.link {
+    fill: none;
+    stroke: #555;
+    stroke-opacity: 0.4;
+    stroke-width: 3.5px;
+}
+
+.node-head {
+    font-size: 1.5rem;
+}
+
+.node-info{
+    font-size: 1.5rem;
+}
