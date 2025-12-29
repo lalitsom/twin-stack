@@ -1,0 +1,108 @@
+/* Grid Background */
+.grid-background {
+    background-image: 
+        linear-gradient(to right, #e5e7eb 1px, transparent 1px),
+        linear-gradient(to bottom, #e5e7eb 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+/* Component Styling */
+.hw-component {
+    position: absolute;
+    cursor: move;
+    user-select: none;
+    transition: box-shadow 0.2s;
+}
+
+.hw-component:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    z-index: 20;
+}
+
+.hw-component.selected {
+    box-shadow: 0 0 0 2px #3b82f6, 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    z-index: 30;
+}
+
+/* Ports */
+.hw-port {
+    transition: transform 0.1s;
+    cursor: crosshair;
+}
+
+.hw-port:hover {
+    transform: scale(1.2);
+    filter: brightness(1.2);
+}
+
+.hw-port.connected {
+    position: relative;
+}
+
+.hw-port.connected::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 6px;
+    height: 6px;
+    background-color: #10b981; /* Green dot for connected */
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.hw-port.selected-source {
+    box-shadow: 0 0 0 2px #ef4444; /* Red ring for source */
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* Inventory Items */
+.inventory-item {
+    cursor: grab;
+    transition: all 0.2s;
+}
+
+.inventory-item:hover {
+    transform: translateY(-2px);
+    background-color: #f3f4f6;
+}
+
+.inventory-item:active {
+    cursor: grabbing;
+}
+
+.inventory-item.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Cable Lines */
+.cable-line {
+    stroke-width: 3;
+    stroke-linecap: round;
+    fill: none;
+    transition: stroke 0.2s;
+    cursor: pointer;
+    pointer-events: stroke; /* Allows clicking the line itself */
+}
+
+.cable-line:hover {
+    stroke-width: 5;
+    filter: drop-shadow(0 0 2px rgba(0,0,0,0.3));
+}
+
+.cable-line.cable-lan {
+    stroke: #3b82f6; /* Blue for LAN */
+}
+
+.cable-line.cable-pcie {
+    stroke: #8b5cf6; /* Purple for PCIe */
+}
